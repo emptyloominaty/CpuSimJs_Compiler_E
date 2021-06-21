@@ -1,0 +1,58 @@
+html {
+    background-color: #343434;
+    color:#fff;
+    font-family: Calibri, serif;
+}
+
+textarea {
+    background-color: #252525;
+    color:#fff;
+    padding: 4px;
+    margin: 10px;
+    width: 350px;
+    height:400px;
+}
+
+button {
+    max-height:30px;
+}
+
+#output {
+    padding: 4px;
+    margin: 10px;
+    white-space:pre-wrap;
+    overflow-y: scroll;
+    width: 350px;
+    height: 400px;
+    background-color: #252525;
+}
+
+
+.mainDiv {
+    display:flex;
+}
+
+
+
+
+
+/*------------------------------------*/
+/* width */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #444;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #777;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
