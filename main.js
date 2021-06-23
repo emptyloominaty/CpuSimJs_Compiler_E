@@ -191,7 +191,6 @@ function getFunctionsCode(code) {
 //-------------------------------------------------------------------------------------------------VARS
 //-------------------------------------------------------------------------------------------------------------------
 function compileVars() {
-
     //VARS
     for (let i=0; i<vars.length; i++) {
         let varName = "var"
@@ -236,6 +235,13 @@ function compileVars() {
         outputCode+= varName+" "+addresses[i].name+" 0 "+addresses[i].address+" \n"
         allVars[addresses[i].name] = addresses[i].size
     }
+    //IMPORTS VARS
+    if (importsArray.length>0) {
+        for (let i = 0; i<importsArray.length; i++) {
+            outputCode+=imports[importsArray[i]].vars
+        }
+    }
+
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -321,7 +327,7 @@ function decode(code,type) {
             storeVar = tokens[0]
         } else if (tokens[0]==="drawChar()") { // drawChar() = var8
             op = "drawChar"
-            loadVars = [tokens[2]]
+            loadVars = [0]
         } else if (tokens[1]==="=" && tokens.length===3)  { // var = 5  ; var = a
             op = "=="
             loadVars = [tokens[2]]
@@ -373,16 +379,15 @@ function decode(code,type) {
         } else if (tokens[1]==="~") { // var ~
             op = "not"
             loadVars = [tokens[0]]
-        } else if (tokens[0]==="drawPixel") { //drawPixel x y color
+        } else if (tokens[0]==="drawPixel()") { //drawPixel x y color
             op = "drawPixel"
-            loadVars = [tokens[1],tokens[2],tokens[3]] //0x010009
+            loadVars = [0]
         } else if (tokens[0]==="setTimer()") { //setTimer timer ms*10
             op = "setTimer"
             loadVars = [tokens[1],tokens[2]]
         }
 
 
-        //TODO:DRAW CHAR 
         //TODO:REMOVE LAST CHAR
 
 
@@ -602,36 +607,23 @@ function decode(code,type) {
             }
             realCode+= "NOT "+regs[0]+"\n"
         } else if (op==="drawPixel") {//---------------------------------------------------------------------DRAW PIXEL
-            //TODO: FIX? import?
-            //store every register to memory because im a dumbass (96cycles)
-            for (let i = 0; i<cpuRegisters; i++) {
-                registerPointer = i
-                storeReg()
-                registers[registerPointer] = 0
-            }
-
-            //LOAD frame buffer address
-            realCode+= "LDI8 r14 1 \n"
-            realCode+= "LDX r15 $010001 \n"
-
-            //LOAD height and width
-            realCode+= "LDX r9 $010005 \n" //width
-            realCode+= "LDX r10 $010007 \n" //height
+            realCode+= "PSH r11 \n"
+            realCode+= "PSH r12 \n"
+            realCode+= "PSH r13 \n"
 
             //LOAD x,y
-            realCode+= "LD r11 "+ loadVars[0] +" \n" //x
-            realCode+= "LD r12 "+ loadVars[1] +" \n" //y
+            realCode+= "LD r11 "+ tokens[1] +" \n" //x
+            realCode+= "LD r12 "+ tokens[2] +" \n" //y
 
             //LOAD Color
-            realCode+= "LD r13 "+ loadVars[2] +" \n"
+            realCode+= "LD r13 "+ tokens[3] +" \n"
 
-            //Add x,y
-            realCode+= "ADD r9 r12 r8 \n" //width*y
-            realCode+= "AD2 r15 r8 \n" //y
-            realCode+= "AD2 r15 r11 \n" //x
+            realCode+= "JSR drawPixel_function_import\n"
 
-            //draw pixel
-            realCode+= "STRX8 r13 r14 \n"
+            realCode+= "POP r13 \n"
+            realCode+= "POP r12 \n"
+            realCode+= "POP r11 \n"
+
         } else if (op==="setTimer") {//----------------------------------------------------------------Set Timer
             if (lsOrReg[1]===true) {
                 loadVarFunction(1, 1, 1)
@@ -647,15 +639,19 @@ function decode(code,type) {
                 realCode+= "STX8 "+regs[1]+" $0A0013 \n"
             }
         } else if (op==="readKey") {//----------------------------------------------------------------Read Key
-            realCode+= "JSR readKeyboardBuffer_System \n"
+            realCode+= "JSR readKeyboardBuffer_import \n"
             realCode+= "PSH r0 \n"
-            realCode+= "LD8 r0 keyboardBufferValueReturn_system \n"
+            realCode+= "LD8 r0 keyboardBufferValueReturn_import \n"
             realCode+= "ST8 r0 "+storeVar+" \n"
             realCode+= "POP r0 \n"
-        } else if (op==="staip") {
+        } else if (op==="staip") {//----------------------------------------------------------------Store address to interrupt pointer
             realCode+= "STAIP "+tokens[1]+" "+tokens[2]+" \n"
-        } else if (op==="drawChar") {
-
+        } else if (op==="drawChar") {//----------------------------------------------------------------Draw character
+            realCode+= "PSH r0 \n"
+            realCode+= "LD8 r0 "+tokens[2]+" \n"
+            realCode+= "ST8 r0 char_drawChar_import \n"
+            realCode+= "POP r0 \n"
+            realCode+= "JSR drawChar_function_import \n"
         }
 
 
