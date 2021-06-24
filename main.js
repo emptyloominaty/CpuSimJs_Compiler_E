@@ -318,7 +318,7 @@ function decode(code,type) {
         let func = 0
         let condition = 0
         let jumpCondition = 0
-        let regs = ["r0","r8","r15"]
+        let regs = ["r0","r1","r2","r3","r4"]
 
 
         if (tokens[2]==="readKey()"){ // var8 = readKey()
@@ -381,20 +381,20 @@ function decode(code,type) {
             loadVars = [tokens[0]]
         } else if (tokens[0]==="drawPixel()") { //drawPixel x y color
             op = "drawPixel"
-            loadVars = [0]
+            loadVars = [tokens[1],tokens[2],tokens[3]]
         } else if (tokens[0]==="setTimer()") { //setTimer timer ms*10
             op = "setTimer"
             loadVars = [tokens[1],tokens[2]]
         }
 
 
-        //TODO:REMOVE LAST CHAR
+        //TODO:REMOVE LAST CHAR (ARRAY)
 
 
 
         let loadOp = ["LD","LD","LD","LD"]
         let lsOrReg = [true,true,true,true,true]
-        let needRegs = [0,8,15]
+        let needRegs = [0,1,2,3,4]
 
 
 //------------------------------------------------------------------------------------------------------REGS
@@ -583,12 +583,12 @@ function decode(code,type) {
             realCode+= "JSR "+func+"\n"
         } else if (op==="++") {//---------------------------------------------------------------------INC
             if (lsOrReg[0]===true) {
-                loadVarFunction(0, 0, 1)
+                loadVarFunction(0, 0, 0)
             }
             realCode+= "INC "+regs[0]+"\n"
         } else if (op==="--") {//---------------------------------------------------------------------DEC
             if (lsOrReg[0]===true) {
-                loadVarFunction(0, 0, 1)
+                loadVarFunction(0, 0, 0)
             }
             realCode+= "DEC "+regs[0]+"\n"
         } else if (op==="shiftRight") {//---------------------------------------------------------------------SHIFT Right
@@ -607,16 +607,23 @@ function decode(code,type) {
             }
             realCode+= "NOT "+regs[0]+"\n"
         } else if (op==="drawPixel") {//---------------------------------------------------------------------DRAW PIXEL
+            if (lsOrReg[0]===true) {
+                loadVarFunction(0, 0, 0)
+            }
+            if (lsOrReg[1]===true) {
+                loadVarFunction(1, 1, 1)
+            }
+            if (lsOrReg[3]===true) {
+                loadVarFunction(3, 3, 2)
+            }
+
             realCode+= "PSH r11 \n"
             realCode+= "PSH r12 \n"
             realCode+= "PSH r13 \n"
 
-            //LOAD x,y
-            realCode+= "LD r11 "+ tokens[1] +" \n" //x
-            realCode+= "LD r12 "+ tokens[2] +" \n" //y
-
-            //LOAD Color
-            realCode+= "LD r13 "+ tokens[3] +" \n"
+            realCode+= "TRR "+regs[0]+" r11 \n"
+            realCode+= "TRR "+regs[1]+" r12 \n"
+            realCode+= "TRR "+regs[3]+" r13 \n"
 
             realCode+= "JSR drawPixel_function_import\n"
 
@@ -669,14 +676,93 @@ function decode(code,type) {
     //return
     if (type==="if" || type==="while" || type==="function" ) {
         if (type==="while") {
+            //cringe
             let loadOp = ["LD","LD"]
-            if (!isNaN(+whileConditionEnd[(whileF-1)][1])) {loadOp[0]="LDI" }
-            if (!isNaN(+whileConditionEnd[(whileF-1)][2])) {loadOp[1]="LDI" }
+            let regsWhile = ["r0","r1"]
+            let needRegs = [0,1]
+            let lsOrReg = [true,true]
 
-            realCode+= loadOp[0]+" r0 "+whileConditionEnd[(whileF-1)][1]+"\n"
-            realCode+= loadOp[1]+" r1 "+whileConditionEnd[(whileF-1)][2]+"\n"
+            let checkRegisterPointer = function() {
+                if (needRegs.includes(registerPointer)) {
+                    registerPointer++
+                    if (registerPointer===cpuRegisters) {
+                        registerPointer = 0
+                    }
+                    return false
+                } else {
+                    return true
+                }
+            }
 
-            realCode+= whileConditionEnd[(whileF-1)][3]+" r0 r1 "+" while"+(whileF-1)+" \n"
+            let storeReg = function() {
+                if (registers[registerPointer]!==0) {
+                    let storeOp = "ST"
+                    if (allVars[registers[registerPointer]]===1) { storeOp="ST8"}
+                    realCode+= storeOp+" r"+registerPointer+" "+registers[registerPointer]+"\n"
+                }
+            }
+            //check if the value is already in register
+            for (let j = 0; j < registers.length; j++) {
+                if (registers[j] === whileConditionEnd[(whileF-1)][1]) {
+                    regsWhile[0]="r"+j
+                    needRegs[0]=j
+                    lsOrReg[0]=false
+                } else if (registers[j] === whileConditionEnd[(whileF-1)][2]) {
+                    regsWhile[1]="r"+j
+                    needRegs[1]=j
+                    lsOrReg[1]=false
+                }
+            }
+
+            //if not load the value
+            if (lsOrReg[0]===true) {
+                let canLoad = false
+                while(canLoad===false) {
+                    canLoad = checkRegisterPointer()
+                }
+                storeReg()
+                needRegs[0] = registerPointer
+                regsWhile[0]="r"+registerPointer
+                registers[registerPointer] = whileConditionEnd[(whileF-1)][1]
+
+                registerPointer++
+            } else if (lsOrReg[1]===true) {  //----------------------------------
+                let canLoad = false
+                while(canLoad===false) {
+                    canLoad = checkRegisterPointer()
+                }
+                storeReg()
+                needRegs[1] = registerPointer
+                regsWhile[1]="r"+registerPointer
+                registers[registerPointer] = whileConditionEnd[(whileF-1)][2]
+                registerPointer++
+            }
+
+
+            let loadVarFunction = function(lop,rg,lva,bit24 = 0) {
+                let loadOp8bit = ""
+                let loadOp24bitAddres = ""
+                let loadVars = whileConditionEnd[(whileF-1)]
+
+                if (allVars[loadVars[lva]]===1) { loadOp8bit = "8"}
+                if (bit24===1) { loadOp24bitAddres = "X"}
+
+                if (!isNaN(+loadVars[lva])) {loadOp[lop]="LDI" }
+
+                loadOp[lop]=loadOp[lop]+loadOp24bitAddres+loadOp8bit
+
+                realCode+= loadOp[lop]+" "+regsWhile[rg]+" "+loadVars[lva]+"\n"
+            }
+
+            if (lsOrReg[0]===true) {
+                loadVarFunction(0, 0, 1)
+            }
+            if (lsOrReg[1]===true) {
+                loadVarFunction(1, 1, 2)
+            }
+
+
+            realCode+= whileConditionEnd[(whileF-1)][3]+" "+regsWhile[0]+" "+regsWhile[1]+" "+"while"+(whileF-1)+" \n"
         }
         realCode+= "RFS \n"
     }
@@ -713,54 +799,6 @@ function test() {
     console.log(allVars)
 }
 
-/*
-TEST CODE
------------------------------------------------------
-
-    function main {
-        var a = 50
-        var b = 60
-        var c = 0
-        c = a + b
-        var test = 20
-        var yes = 20
-        var no = 10
-        yes = 30
-        run kekw
-    }
-
-    function kekw {
-        var a2 = 20
-        var b2 = 10
-        string bbb = xdd
-        array ccc = 2,5,6,9
-
-        if (yes>no) {
-            a2 = a2 + b2
-        }
-
-        var i = 0
-        while (i<5) {
-            i = i + 1
-        }
-
-         var j = 0
-        while (j<5) {
-            j = j + 1
-        }
-
-        if (5>2) {
-            if (3>2) {
-                 test = test + 20
-                 test += 20
-            }
-        }
-
-
-    }
-
------------------------------------------------------
- */
 
 el_input.value = "function main {\n" +
     "\n" +
