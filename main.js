@@ -43,7 +43,6 @@ let reset = function() {
 
 }
 
-//TODO:WORKER + LOADING BAR
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------MAIN
 //-------------------------------------------------------------------------------------------------------------------
@@ -400,26 +399,28 @@ function decode(code,type) {
 //------------------------------------------------------------------------------------------------------REGS
         //check if the value is already in register
         for (let j = 0; j < registers.length; j++) {
-            if (registers[j] === loadVars[0]) {
-                regs[0]="r"+j
-                needRegs[0]=j
-                lsOrReg[0]=false
-            } else if (registers[j] === loadVars[1]) {
-                regs[1]="r"+j
-                needRegs[1]=j
-                lsOrReg[1]=false
-            } else if (registers[j] === loadVars[2]) {
-                regs[3]="r"+j
-                needRegs[3]=j
-                lsOrReg[3]=false
-            } else if (registers[j] === loadVars[3]) {
-                regs[4]="r"+j
-                needRegs[4]=j
-                lsOrReg[4]=false
-            } else if (registers[j] === storeVar) {
-                regs[2]="r"+j
-                needRegs[2]=j
-                lsOrReg[2]=false
+            if (isNaN(registers[j]))  {
+                if (registers[j] === loadVars[0]) {
+                    regs[0]="r"+j
+                    needRegs[0]=j
+                    lsOrReg[0]=false
+                } else if (registers[j] === loadVars[1]) {
+                    regs[1]="r"+j
+                    needRegs[1]=j
+                    lsOrReg[1]=false
+                } else if (registers[j] === loadVars[2]) {
+                    regs[3]="r"+j
+                    needRegs[3]=j
+                    lsOrReg[3]=false
+                } else if (registers[j] === loadVars[3]) {
+                    regs[4]="r"+j
+                    needRegs[4]=j
+                    lsOrReg[4]=false
+                } else if (registers[j] === storeVar) {
+                    regs[2]="r"+j
+                    needRegs[2]=j
+                    lsOrReg[2]=false
+                }
             }
         }
 
@@ -436,15 +437,16 @@ function decode(code,type) {
         }
 
         let storeReg = function() {
-            if (registers[registerPointer]!==0) {
+            if (registers[registerPointer]!==undefined && registers[registerPointer]!==0 && isNaN(registers[registerPointer])) {
                 let storeOp = "ST"
                 if (allVars[registers[registerPointer]]===1) { storeOp="ST8"}
                 realCode+= storeOp+" r"+registerPointer+" "+registers[registerPointer]+"\n"
+                console.log(registers[registerPointer])
             }
         }
 
         //if not load the value
-        if (lsOrReg[0]===true) {
+        if (lsOrReg[0]===true) { //TODO: ONLY IF I WANT TO LOAD SHIT
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -453,9 +455,12 @@ function decode(code,type) {
             needRegs[0] = registerPointer
             regs[0]="r"+registerPointer
             registers[registerPointer] = loadVars[0]
-
             registerPointer++
-        } else if (lsOrReg[1]===true) {  //----------------------------------
+            if (registerPointer===cpuRegisters) {
+                registerPointer = 0
+            }
+        }
+        if (lsOrReg[1]===true) {  //----------------------------------
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -465,7 +470,11 @@ function decode(code,type) {
             regs[1]="r"+registerPointer
             registers[registerPointer] = loadVars[1]
             registerPointer++
-        } else if (lsOrReg[2]===true) {  //----------------------------------
+            if (registerPointer===cpuRegisters) {
+                registerPointer = 0
+            }
+        }
+        if (lsOrReg[2]===true) {  //----------------------------------
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -475,7 +484,11 @@ function decode(code,type) {
             regs[2]="r"+registerPointer
             registers[registerPointer] = storeVar
             registerPointer++
-        } else if (lsOrReg[3]===true) {  //----------------------------------
+            if (registerPointer===cpuRegisters) {
+                registerPointer = 0
+            }
+        }
+        if (lsOrReg[3]===true) {  //----------------------------------
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -485,7 +498,11 @@ function decode(code,type) {
             regs[3]="r"+registerPointer
             registers[registerPointer] = loadVars[2]
             registerPointer++
-        } else if (lsOrReg[4]===true) {  //----------------------------------
+            if (registerPointer===cpuRegisters) {
+                registerPointer = 0
+            }
+        }
+        if (lsOrReg[4]===true) {  //----------------------------------
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -495,6 +512,9 @@ function decode(code,type) {
             regs[4]="r"+registerPointer
             registers[registerPointer] = loadVars[3]
             registerPointer++
+            if (registerPointer===cpuRegisters) {
+                registerPointer = 0
+            }
         }
 //------------------------------------------------------------------------------------------------
 
@@ -703,14 +723,16 @@ function decode(code,type) {
             }
             //check if the value is already in register
             for (let j = 0; j < registers.length; j++) {
-                if (registers[j] === whileConditionEnd[(whileF-1)][1]) {
-                    regsWhile[0]="r"+j
-                    needRegs[0]=j
-                    lsOrReg[0]=false
-                } else if (registers[j] === whileConditionEnd[(whileF-1)][2]) {
-                    regsWhile[1]="r"+j
-                    needRegs[1]=j
-                    lsOrReg[1]=false
+                if (isNaN(registers[j])) {
+                    if (registers[j] === whileConditionEnd[(whileF - 1)][1]) {
+                        regsWhile[0] = "r" + j
+                        needRegs[0] = j
+                        lsOrReg[0] = false
+                    } else if (registers[j] === whileConditionEnd[(whileF - 1)][2]) {
+                        regsWhile[1] = "r" + j
+                        needRegs[1] = j
+                        lsOrReg[1] = false
+                    }
                 }
             }
 
@@ -726,7 +748,8 @@ function decode(code,type) {
                 registers[registerPointer] = whileConditionEnd[(whileF-1)][1]
 
                 registerPointer++
-            } else if (lsOrReg[1]===true) {  //----------------------------------
+            }
+            if (lsOrReg[1]===true) {  //----------------------------------
                 let canLoad = false
                 while(canLoad===false) {
                     canLoad = checkRegisterPointer()

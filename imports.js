@@ -5,7 +5,7 @@ let imports = {
             "var8 writePointer_import 0  \n" +
             "var8 readPointer_import 0 \n" +
             "avar8 keyBufferFirst_import 0 $FF00 \n" +
-            "var8 keyboardBufferValueReturn_import \n",
+            "var8 keyboardBufferValueReturn_import 0 \n",
         startCode:"STAIP 1 interruptKeyboard_import\n",
         endCode:"<readKeyboardBuffer_import> \n" +
             "PSH r0 \n" +
@@ -20,7 +20,7 @@ let imports = {
             "AD2 r2 r1 \n" +
             "LDR8 r0 r2 \n" +
             "INC r1 \n" +
-            "ST8 r1 readPointer \n" +
+            "ST8 r1 readPointer_import \n" +
             "ST8 r0 keyboardBufferValueReturn_import \n" +
 
             "<returnFromKeyboardBufferRead_import> \n" +
@@ -56,7 +56,8 @@ let imports = {
             "var8 charsRow_drawChar_import 0\n" +
             "var8 charsRowMax_drawChar_import 46 \n" +
             "var frameBufferPointer_drawChar_import 0\n",
-        startCode:"LDX r15 $010001 \n",
+        startCode:"\nLDX r15 $010001 \n" +
+            "ST r15 frameBufferPointer_drawChar_import\n",
         endCode:
             "<drawChar_function_import>\n" +
             "PSH r0 \n" +
@@ -76,16 +77,33 @@ let imports = {
             "PSH r14 \n" +
             "PSH r15 \n" +
             "LDI8 r1 9\n" +
+            "LDI8 r14 1  \n" +  //gpu address Hi
+            "LD r15 frameBufferPointer_drawChar_import \n" + //gpu address Lo
             "LD8 r2 char_drawChar_import\n" +
             "JE r1 r2 doEnter_drawChar_import\n" +
             "LDI8 r0 32\n" +
             "JL r2 r0 returnFrom_drawChar_import\n" +
-            "LDI8 r14 1  \n" +  //gpu address Hi
-            "LD r15 frameBufferPointer_drawChar_import \n" + //gpu address Lo
             "TRR r2 r9\n" + //
             "LDI8 r12 0\n" + //CharRom Lo
             "LDI8 r11 2\n" + //CharRom Hi
+            "INC r15 \n" +
+            "JMP init_drawChar_import\n" +
 
+            "<doEnter_drawChar_import>\n" +
+            "LD8 r0 charsRow_drawChar_import\n" +
+            "LD8 r1 charsRowMax_drawChar_import\n" +
+            "LDI8 r2 7\n" + //char size
+            "DEC r1\n" +
+            "SUB r1 r0 r4 \n" +
+            "MUL r4 r2 r5\n" +
+            "ADDI r5 5\n" +
+            "AD2 r15 r5\n" +
+            "ADDI r15 2561 \n" +
+            "LDI8 r0 0 \n" +
+            "ST8 r0 charsRow_drawChar_import\n" +
+            "JMP returnFrom_drawChar_import\n" +
+
+            "<init_drawChar_import>\n" +
             "MULI r9 8\n" +
             "LDI8 r12 0\n" +
             "AD2 r12 r9\n" + //get char Address
@@ -118,9 +136,18 @@ let imports = {
             "JMP nextCharLine_import\n" +
 
             "<drawCharPixel_import>\n" +
+            "JSR colorCharPixel_import\n" +
             "STRX8 r13 r14\n" +
             "INC r15\n" +
             "RFS\n" +
+
+            "<colorCharPixel_import>\n" +
+            "LDI r7 0\n" +
+            "JE r13 r7 colorCharPixel_return_import\n" +
+            "LDI8 r6 239\n" + //color
+            "AD2 r13 r6\n" +
+            "<colorCharPixel_return_import>\n" +
+            "RFS \n" +
 
             "<next_drawChar_import>\n" +
             "SUBI r15 2554\n" + //2560 - 6   (2560 = 320 * 8)
@@ -139,19 +166,6 @@ let imports = {
             "ST8 r8 charsRow_drawChar_import\n" +
             "ADDI r15 2565\n" +
             "RFS\n" +
-
-            "<doEnter_drawChar_import>\n" +
-            "LD8 r0 charsRow_drawChar_import\n" +
-            "LD8 r1 charsRowMax_drawChar_impor\n" +
-            "LDI8 r2 6\n" + //char size
-            "DEC r1\n" +
-            "SUB r1 r0 r4 \n" +
-            "MUL r4 r2 r5\n" +
-            "ADDI r5 5\n" +
-            "AD2 r15 r5\n" +
-            "ADDI r15 2561 \n" +
-            "LDI8 r0 0 \n" +
-            "ST8 r0 charsRow_drawChar_import\n" +
 
             "<returnFrom_drawChar_import>\n" +
             "ST r15 frameBufferPointer_drawChar_import\n" +
