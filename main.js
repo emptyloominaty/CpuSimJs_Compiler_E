@@ -6,7 +6,7 @@ let el_time = document.getElementById("time")
 let cpuRegisters = 16
 
 //----------------------------------
-
+//TODO: fix while()
 
 let registers = new Array(16).fill(0)
 let registerPointer = 0
@@ -310,7 +310,7 @@ function decode(code,type) {
         let line = lines[i]
         let tokens = line.split(" ")
         tokens = tokens.filter(e => e)
-        let loadVars = [0,0,0,0]
+        let loadVars = [undefined,undefined,undefined,undefined]
         let operator = ""
         let storeVar = 0
         let op = ""
@@ -322,11 +322,11 @@ function decode(code,type) {
 
         if (tokens[2]==="readKey()"){ // var8 = readKey()
             op = "readKey"
-            loadVars = [0]
+            loadVars = []
             storeVar = tokens[0]
         } else if (tokens[0]==="drawChar()") { // drawChar() = var8
             op = "drawChar"
-            loadVars = [0]
+            loadVars = []
         } else if (tokens[1]==="=" && tokens.length===3)  { // var = 5  ; var = a
             op = "=="
             loadVars = [tokens[2]]
@@ -386,11 +386,6 @@ function decode(code,type) {
             loadVars = [tokens[1],tokens[2]]
         }
 
-
-        //TODO:REMOVE LAST CHAR (ARRAY)
-
-
-
         let loadOp = ["LD","LD","LD","LD"]
         let lsOrReg = [true,true,true,true,true]
         let needRegs = [0,1,2,3,4]
@@ -446,7 +441,7 @@ function decode(code,type) {
         }
 
         //if not load the value
-        if (lsOrReg[0]===true) { //TODO: ONLY IF I WANT TO LOAD SHIT
+        if (lsOrReg[0]===true && loadVars[0]!==undefined) {
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -460,7 +455,7 @@ function decode(code,type) {
                 registerPointer = 0
             }
         }
-        if (lsOrReg[1]===true) {  //----------------------------------
+        if (lsOrReg[1]===true && loadVars[1]!==undefined) {  //----------------------------------
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -474,7 +469,7 @@ function decode(code,type) {
                 registerPointer = 0
             }
         }
-        if (lsOrReg[2]===true) {  //----------------------------------
+        if (lsOrReg[2]===true && storeVar!==undefined) {  //----------------------------------
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -488,7 +483,7 @@ function decode(code,type) {
                 registerPointer = 0
             }
         }
-        if (lsOrReg[3]===true) {  //----------------------------------
+        if (lsOrReg[3]===true && loadVars[2]!==undefined) {  //----------------------------------
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
@@ -502,7 +497,7 @@ function decode(code,type) {
                 registerPointer = 0
             }
         }
-        if (lsOrReg[4]===true) {  //----------------------------------
+        if (lsOrReg[4]===true && loadVars[3]!==undefined) {  //----------------------------------
             let canLoad = false
             while(canLoad===false) {
                 canLoad = checkRegisterPointer()
